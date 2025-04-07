@@ -51,6 +51,11 @@ public class DownloadManager: NSObject, @unchecked Sendable {
         maxConcurrentCount = -1
         waitingQueueMode = .fifo
         
+        // 先设置缓存目录路径
+        self.cacheFilesDirectory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).last!
+            .appendingPathComponent("CustomDownloadDirectory").path
+        
+        // 然后创建目录
         let downloadDirectory = self.downloadDirectory
         var isDirectory: ObjCBool = false
         let fileManager = FileManager.default
@@ -62,15 +67,11 @@ public class DownloadManager: NSObject, @unchecked Sendable {
         
         downloadSession = URLSession(configuration: .default, delegate: self, delegateQueue: OperationQueue())
         
-        self.cacheFilesDirectory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).last!.appendingPathComponent("CustomDownloadDirectory").path
-        
         if let plist = NSDictionary(contentsOfFile: filesTotalLengthPlistPath) as? [String: Any] {
             filesTotalLengthPlist = plist
         } else {
             filesTotalLengthPlist = [:]
         }
-        
-
     }
     
     // MARK: - Helper Methods
