@@ -4,14 +4,13 @@
 //
 
 import Foundation
-import UIKit
 
 enum SRWaitingQueueMode: Int {
     case fifo // First In First Out
     case lifo // Last In First Out
 }
 
-class DownloadManager: NSObject {
+class DownloadManager: NSObject, @unchecked Sendable {
     
     // MARK: - Properties
     
