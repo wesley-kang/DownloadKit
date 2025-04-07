@@ -2,7 +2,7 @@
 //  ContentView.swift
 //  Example
 //
-//  Created by ihenryhuang on 2025/4/7.
+//  Created by hong on 2025/4/7.
 //
 
 import SwiftUI
@@ -32,7 +32,6 @@ struct ContentView: View {
             } completion: { isFinished, filePath, error in
               print("isFinished:\(isFinished), filePath:\(String(describing: filePath)), error:\(String(describing: error))")
             }
-            
         }
     }
 }
