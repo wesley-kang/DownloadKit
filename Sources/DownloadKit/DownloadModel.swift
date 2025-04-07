@@ -5,7 +5,7 @@
 
 import Foundation
 
-enum DownloadState: Int {
+public enum DownloadState: Int {
     case waiting
     case running
     case suspended
@@ -14,9 +14,9 @@ enum DownloadState: Int {
     case failed
 }
 
-typealias StateBlock = (DownloadState) -> Void
-typealias ProgressBlock = (Int, Int, CGFloat) -> Void
-typealias CompletionBlock = (Bool, String?, Error?) -> Void
+public typealias StateBlock = (DownloadState) -> Void
+public typealias ProgressBlock = (Int, Int, CGFloat) -> Void
+public typealias CompletionBlock = (Bool, String?, Error?) -> Void
 
 class DownloadModel: NSObject {
     var outputStream: OutputStream?

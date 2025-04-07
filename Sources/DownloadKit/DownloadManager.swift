@@ -5,12 +5,12 @@
 
 import Foundation
 
-enum SRWaitingQueueMode: Int {
+public enum SRWaitingQueueMode: Int {
     case fifo // First In First Out
     case lifo // Last In First Out
 }
 
-class DownloadManager: NSObject, @unchecked Sendable {
+public class DownloadManager: NSObject, @unchecked Sendable {
     
     // MARK: - Properties
     
@@ -30,10 +30,10 @@ class DownloadManager: NSObject, @unchecked Sendable {
     }
     
     /// The count of max concurrent downloads, default is -1 which means no limit.
-    var maxConcurrentCount: Int = -1
+    public var maxConcurrentCount: Int = -1
     
     /// The mode of waiting download queue, default is FIFO.
-    var waitingQueueMode: SRWaitingQueueMode = .fifo
+    public var waitingQueueMode: SRWaitingQueueMode = .fifo
     
     private var downloadSession: URLSession!
     private var downloadModels: [String: DownloadModel] = [:]
@@ -43,7 +43,7 @@ class DownloadManager: NSObject, @unchecked Sendable {
     
     // MARK: - Singleton
     
-    static let shared = DownloadManager()
+    public static let shared = DownloadManager()
     
     private override init() {
         super.init()
@@ -95,7 +95,7 @@ class DownloadManager: NSObject, @unchecked Sendable {
     
     // MARK: - Download Methods
     
-    func download(url: URL, 
+    public func download(url: URL, 
                  destPath: String? = nil,
                  state: StateBlock? = nil,
                  progress: ProgressBlock? = nil,
@@ -257,11 +257,11 @@ class DownloadManager: NSObject, @unchecked Sendable {
         return hasDownloadedLength(url) == totalLength
     }
     
-    func fileFullPath(of url: URL) -> String {
+    public func fileFullPath(of url: URL) -> String {
         return filePath(for: url)
     }
     
-    func hasDownloadedProgress(of url: URL) -> CGFloat {
+    public func hasDownloadedProgress(of url: URL) -> CGFloat {
         if isDownloadCompleted(of: url) {
             return 1.0
         }
@@ -361,7 +361,7 @@ class DownloadManager: NSObject, @unchecked Sendable {
 
 extension DownloadManager: URLSessionDataDelegate {
     
-    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse, completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
+    public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse, completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
         
         guard let taskDescription = dataTask.taskDescription,
               let downloadModel = downloadModels[taskDescription],
@@ -381,7 +381,7 @@ extension DownloadManager: URLSessionDataDelegate {
         completionHandler(.allow)
     }
     
-    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
+    public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
         guard let taskDescription = dataTask.taskDescription,
               let downloadModel = downloadModels[taskDescription],
               let outputStream = downloadModel.outputStream,
@@ -405,7 +405,7 @@ extension DownloadManager: URLSessionDataDelegate {
         }
     }
     
-    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+    public func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         if let error = error as NSError?, error.code == -999 {
             return
         }
