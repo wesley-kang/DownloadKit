@@ -1,13 +1,13 @@
 //
-//  ExampleUITests.swift
-//  ExampleUITests
+//  DownloadKitUITests.swift
+//  DownloadKitUITests
 //
-//  Created by hong on 2025/4/7.
+//  Created by kangheng on 2025/4/8.
 //
 
 import XCTest
 
-final class ExampleUITests: XCTestCase {
+final class DownloadKitUITests: XCTestCase {
 
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.
@@ -33,11 +33,9 @@ final class ExampleUITests: XCTestCase {
 
     @MainActor
     func testLaunchPerformance() throws {
-        if #available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 7.0, *) {
-            // This measures how long it takes to launch your application.
-            measure(metrics: [XCTApplicationLaunchMetric()]) {
-                XCUIApplication().launch()
-            }
+        // This measures how long it takes to launch your application.
+        measure(metrics: [XCTApplicationLaunchMetric()]) {
+            XCUIApplication().launch()
         }
     }
 }
