@@ -14,6 +14,8 @@ struct DownloadItem: Identifiable {
     var destPath: String
     var progress: Double
     var status: DownloadStatus
+    var coverUrl: String
+    var taskName: String
 }
 
 enum DownloadStatus {
@@ -30,28 +32,47 @@ struct ContentView: View {
     @State private var downloadItems: [DownloadItem] = []
     @State private var isShowingURLInput = false
     @State private var inputURL = ""
+    @State private var inputCoverURL = ""
+    @State private var inputTaskName = ""
     
     var body: some View {
         NavigationStack {
             List {
-                ForEach(downloadItems) { item in
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(item.fileName)
-                            .font(.headline)
+               ForEach(downloadItems) { item in
+                    HStack(spacing: 12) {
+                        AsyncImage(url: URL(string: item.coverUrl)) { image in
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                        } placeholder: {
+                            Image(systemName: "photo")
+                                .foregroundColor(.gray)
+                        }
+                        .frame(width: 60, height: 60)
+                        .cornerRadius(6)
+                        .clipped()
                         
-                        ProgressView(value: item.progress, total: 1.0)
-                            .tint(.blue)
-                        
-                        HStack {
-                            Text(statusText(for: item.status))
-                                .foregroundColor(.secondary)
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(item.taskName)
+                                .font(.headline)
+                            Text(item.srcUrl)
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                                .lineLimit(1)
+                            ProgressView(value: item.progress, total: 1.0)
+                                .tint(.blue)
                             
-                            Spacer()
-                            
-                            Button(action: {
-                                startDownload(for: item)
-                            }) {
-                                Image(systemName: buttonImage(for: item.status))
+                            HStack {
+                                Text(statusText(for: item.status))
+                                    .foregroundColor(.secondary)
+                                
+                                Spacer()
+                                
+                                Button(action: {
+                                    startDownload(for: item)
+                                }) {
+                                    Image(systemName: buttonImage(for: item.status))
+                                }
                             }
                         }
                     }
@@ -69,7 +90,9 @@ struct ContentView: View {
                 }
             }
             .alert("添加下载", isPresented: $isShowingURLInput) {
-                TextField("请输入下载链接", text: $inputURL)
+                TextField("任务名称", text: $inputTaskName)
+                TextField("下载链接", text: $inputURL)
+                TextField("封面链接", text: $inputCoverURL)
                 Button("取消", role: .cancel) {
                     inputURL = ""
                 }
@@ -80,7 +103,7 @@ struct ContentView: View {
                     inputURL = ""
                 }
             } message: {
-                Text("请输入要下载的文件URL")
+                 Text("请输入下载任务信息")
             }
 
         }
@@ -166,7 +189,11 @@ struct ContentView: View {
         
          
     }
-    
+    private func resetInputFields() {
+        inputURL = ""
+        inputCoverURL = ""
+        inputTaskName = ""
+    }
     private func addNewDownload(with urlString: String) {
         // https://github.com/BBC6BAE9/video/raw/refs/heads/master/Shogun.S01E01.2024.2160p.DSNP.WEB-DL.DDP5.1.DV.HDR.H.265-HHWEB.mp4
         guard let sourceURL = URL(string: urlString) else { return }
@@ -178,7 +205,9 @@ struct ContentView: View {
                                  srcUrl: urlString,
                                  destPath: destPath,
                                  progress: 0.0,
-                                 status: .notStarted)
+                                 status: .notStarted,
+                                 coverUrl: inputCoverURL,
+                                 taskName: inputTaskName)
         downloadItems.append(newItem)
     }
 }
