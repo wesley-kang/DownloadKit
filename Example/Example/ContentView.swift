@@ -77,6 +77,13 @@ struct ContentView: View {
                         }
                     }
                     .padding(.vertical, 8)
+                    .contextMenu {
+                        Button(role: .destructive) {
+                            deleteDownload(item)
+                        } label: {
+                            Label("删除文件", systemImage: "trash")
+                        }
+                    }
                 }
             }
             .navigationTitle("下载管理")
@@ -108,7 +115,29 @@ struct ContentView: View {
 
         }
     }
-    
+    // 添加删除功能函数
+    private func deleteDownload(_ item: DownloadItem) {
+        // 删除本地文件
+        if FileManager.default.fileExists(atPath: item.destPath) {
+            do {
+                print("删除文件: \(item.destPath)")
+                try FileManager.default.removeItem(atPath: item.destPath)
+                 // 更新状态为已删除
+                if let index = downloadItems.firstIndex(where: { $0.id == item.id }) {
+                    downloadItems[index].status = .notStarted
+                    downloadItems[index].progress = 0.0
+                }
+            } catch {
+                print("删除文件失败: \(error)")
+            }
+        }else{
+            print("文件不存在: \(item.destPath)")
+            if let index = downloadItems.firstIndex(where: { $0.id == item.id }) {
+            downloadItems[index].status = .canceled
+            downloadItems[index].progress = 0.0
+        }
+        }
+    }
     private func statusText(for status: DownloadStatus) -> String {
         switch status {
         case .notStarted:
@@ -133,7 +162,7 @@ struct ContentView: View {
         case .notStarted:
             return "arrow.down.circle"
         case .downloading:
-            return "stop.circle"
+             return "arrow.down.circle.fill" // 修改为实心下载
         case .completed:
             return "checkmark.circle"
         case .failed:
@@ -149,13 +178,24 @@ struct ContentView: View {
     
     private func startDownload(for item: DownloadItem) {
         if let index = downloadItems.firstIndex(where: { $0.id == item.id }) {
-            downloadItems[index].status = .downloading
-             guard let url = URL(string: downloadItems[index].srcUrl) else {
+            guard let url = URL(string: downloadItems[index].srcUrl) else {
                 downloadItems[index].status = .failed
                 return
             }
-            // 获取 Documents 目录路径
-            let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            print(downloadItems[index].status)
+            // 如果正在下载，则暂停
+            if downloadItems[index].status == .downloading {
+                DownloadManager.shared.suspendDownload(of: url)
+                downloadItems[index].status = .suspended
+                return
+            }
+              // 如果是暂停状态，则恢复下载
+            if downloadItems[index].status == .suspended {
+                DownloadManager.shared.resumeDownload(of: url)
+                downloadItems[index].status = .downloading
+                return
+            }
+            downloadItems[index].status = .downloading
             DownloadManager.shared.download(url: url, destPath: item.destPath){ state in
                         print("\(state)")
                         // 根据下载状态更新 UI
@@ -184,6 +224,7 @@ struct ContentView: View {
                         }
                         downloadItems[index].progress = 1.0
                         downloadItems[index].status = .completed
+                        downloadItems[index].destPath = filePath!
                     }
         }
         
@@ -198,9 +239,9 @@ struct ContentView: View {
         // https://github.com/BBC6BAE9/video/raw/refs/heads/master/Shogun.S01E01.2024.2160p.DSNP.WEB-DL.DDP5.1.DV.HDR.H.265-HHWEB.mp4
         guard let sourceURL = URL(string: urlString) else { return }
         let fileName = sourceURL.lastPathComponent
-        let currentPath = FileManager.default.currentDirectoryPath
-        let destPath = (currentPath as NSString).appendingPathComponent(fileName)
-        
+         // 获取 Documents 目录路径
+        let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let destPath = documentsPath.appendingPathComponent(fileName).path
         let newItem = DownloadItem(fileName: fileName,
                                  srcUrl: urlString,
                                  destPath: destPath,

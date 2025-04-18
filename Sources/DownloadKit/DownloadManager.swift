@@ -147,7 +147,7 @@ public class DownloadManager: NSObject, @unchecked Sendable {
     
     // MARK: - Download Control Methods
     
-    func suspendDownload(of url: URL) {
+    public func suspendDownload(of url: URL) {
         suspendDownload(of: url, resumeNext: true)
     }
     
@@ -182,7 +182,7 @@ public class DownloadManager: NSObject, @unchecked Sendable {
         }
     }
     
-    func resumeDownload(of url: URL) {
+    public func resumeDownload(of url: URL) {
         guard let downloadModel = downloadModels[fileName(for: url)] else { return }
         
         let downloadState: DownloadState
@@ -208,7 +208,7 @@ public class DownloadManager: NSObject, @unchecked Sendable {
         }
     }
     
-    func cancelDownload(of url: URL) {
+    public func cancelDownload(of url: URL) {
         cancelDownload(of: url, resumeNext: true)
     }
     
