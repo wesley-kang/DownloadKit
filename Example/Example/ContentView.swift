@@ -47,6 +47,9 @@ struct ContentView: View {
     @State private var inputURL = ""
     @State private var inputCoverURL = ""
     @State private var inputTaskName = ""
+    @State private var showRedownloadAlert = false
+     @State private var showDuplicateAlert = false
+    @State private var selectedItem: DownloadItem?
     
     var body: some View {
         NavigationStack {
@@ -134,39 +137,34 @@ struct ContentView: View {
 
         }.onAppear {
             resumeUnfinishedDownloads()
+        }.alert("重新下载", isPresented: $showRedownloadAlert) {
+            Button("取消", role: .cancel) { }
+            Button("确定") {
+                if let item = selectedItem {
+                    item.status = .notStarted
+                    item.progress = 0.0
+                    if let index = downloadItems.firstIndex(where: { $0.id == item.id }) {
+                        startDownload(for: downloadItems[index])
+                    }
+                }
+            }
+        } message: {
+            Text("该文件已下载完成，是否重新下载？")
+        } .alert("提示", isPresented: $showDuplicateAlert) {
+            Button("确定", role: .cancel) { }
+        } message: {
+            Text("该下载任务已存在")
         }
     }
+    
     private func resumeUnfinishedDownloads() {
         for item in downloadItems {
             // 检查非完成状态的下载任务
-            if item.status == .downloading || item.status == .suspended || item.status == .waiting {
+            if item.status == .downloading || item.status == .suspended || item.status == .waiting || item.status == .failed{
                 // 重置状态为未开始，以便重新下载
                 item.status = .notStarted
                 startDownload(for: item)
             }
-        }
-    }
-    // 添加删除功能函数
-    private func deleteFile(_ item: DownloadItem) {
-        // 删除本地文件
-        if FileManager.default.fileExists(atPath: item.destPath) {
-            do {
-                print("删除文件: \(item.destPath)")
-                try FileManager.default.removeItem(atPath: item.destPath)
-                 // 更新状态为已删除
-                if let index = downloadItems.firstIndex(where: { $0.id == item.id }) {
-                    downloadItems[index].status = .notStarted
-                    downloadItems[index].progress = 0.0
-                }
-            } catch {
-                print("删除文件失败: \(error)")
-            }
-        }else{
-            print("文件不存在: \(item.destPath)")
-            if let index = downloadItems.firstIndex(where: { $0.id == item.id }) {
-            downloadItems[index].status = .canceled
-            downloadItems[index].progress = 0.0
-        }
         }
     }
     private func statusText(for status: DownloadStatus) -> String {
@@ -208,12 +206,17 @@ struct ContentView: View {
     }
     
     private func startDownload(for item: DownloadItem) {
+
+        if item.status == .completed {
+            selectedItem = item
+            showRedownloadAlert = true
+            return
+        }
         if let index = downloadItems.firstIndex(where: { $0.id == item.id }) {
             guard let url = URL(string: downloadItems[index].srcUrl) else {
                 downloadItems[index].status = .failed
                 return
             }
-            print(downloadItems[index].status)
             // 如果正在下载，则暂停
             if downloadItems[index].status == .downloading {
                 DownloadManager.shared.suspendDownload(of: url)
@@ -226,6 +229,7 @@ struct ContentView: View {
                 downloadItems[index].status = .downloading
                 return
             }
+            print(downloadItems[index].status)
             downloadItems[index].status = .downloading
             DownloadManager.shared.download(url: url, destPath: item.destPath){ state in
                         print("\(state)")
@@ -267,6 +271,10 @@ struct ContentView: View {
         inputTaskName = ""
     }
     private func addNewDownload(with urlString: String) {
+        if downloadItems.contains(where: { $0.srcUrl == urlString }) {
+            showDuplicateAlert = true
+            return
+        }
         // https://github.com/BBC6BAE9/video/raw/refs/heads/master/Shogun.S01E01.2024.2160p.DSNP.WEB-DL.DDP5.1.DV.HDR.H.265-HHWEB.mp4
         guard let sourceURL = URL(string: urlString) else { return }
         let fileName = sourceURL.lastPathComponent
@@ -281,6 +289,32 @@ struct ContentView: View {
                                  coverUrl: inputCoverURL,
                                  taskName: inputTaskName)
         modelContext.insert(newItem)
+        try? modelContext.save()  // 手动保存确保数据持久化
+        startDownload(for: newItem)
+        resetInputFields()  // 重置输入框
+    }
+    // 添加删除功能函数
+    private func deleteFile(_ item: DownloadItem) {
+        // 删除本地文件
+        if FileManager.default.fileExists(atPath: item.destPath) {
+            do {
+                print("删除文件: \(item.destPath)")
+                try FileManager.default.removeItem(atPath: item.destPath)
+                 // 更新状态为已删除
+                if let index = downloadItems.firstIndex(where: { $0.id == item.id }) {
+                    downloadItems[index].status = .notStarted
+                    downloadItems[index].progress = 0.0
+                }
+            } catch {
+                print("删除文件失败: \(error)")
+            }
+        }else{
+            print("文件不存在: \(item.destPath)")
+            if let index = downloadItems.firstIndex(where: { $0.id == item.id }) {
+            downloadItems[index].status = .canceled
+            downloadItems[index].progress = 0.0
+        }
+        }
     }
     private func deleteDownload(_ item: DownloadItem) {
         if FileManager.default.fileExists(atPath: item.destPath) {
