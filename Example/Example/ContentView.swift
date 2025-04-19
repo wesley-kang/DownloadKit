@@ -7,8 +7,9 @@
 import SwiftUI
 import SwiftData
 import DownloadKit
-struct DownloadItem: Identifiable {
-    let id = UUID()
+@Model
+final class DownloadItem {
+    var id: UUID
     var fileName: String
     var srcUrl: String
     var destPath: String
@@ -16,9 +17,20 @@ struct DownloadItem: Identifiable {
     var status: DownloadStatus
     var coverUrl: String
     var taskName: String
+    
+    init(fileName: String, srcUrl: String, destPath: String, progress: Double, status: DownloadStatus, coverUrl: String, taskName: String) {
+        self.id = UUID()
+        self.fileName = fileName
+        self.srcUrl = srcUrl
+        self.destPath = destPath
+        self.progress = progress
+        self.status = status
+        self.coverUrl = coverUrl
+        self.taskName = taskName
+    }
 }
 
-enum DownloadStatus {
+enum DownloadStatus: Codable {
     case notStarted
     case downloading
     case completed
@@ -29,7 +41,8 @@ enum DownloadStatus {
 }
 
 struct ContentView: View {
-    @State private var downloadItems: [DownloadItem] = []
+    @Query(sort: \DownloadItem.taskName) private var downloadItems: [DownloadItem]
+    @Environment(\.modelContext) private var modelContext
     @State private var isShowingURLInput = false
     @State private var inputURL = ""
     @State private var inputCoverURL = ""
@@ -79,9 +92,15 @@ struct ContentView: View {
                     .padding(.vertical, 8)
                     .contextMenu {
                         Button(role: .destructive) {
-                            deleteDownload(item)
+                            deleteFile(item)
                         } label: {
                             Label("删除文件", systemImage: "trash")
+                        }
+                        
+                        Button(role: .destructive) {
+                            deleteDownload(item)
+                        } label: {
+                            Label("删除任务", systemImage: "xmark.circle")
                         }
                     }
                 }
@@ -113,10 +132,22 @@ struct ContentView: View {
                  Text("请输入下载任务信息")
             }
 
+        }.onAppear {
+            resumeUnfinishedDownloads()
+        }
+    }
+    private func resumeUnfinishedDownloads() {
+        for item in downloadItems {
+            // 检查非完成状态的下载任务
+            if item.status == .downloading || item.status == .suspended || item.status == .waiting {
+                // 重置状态为未开始，以便重新下载
+                item.status = .notStarted
+                startDownload(for: item)
+            }
         }
     }
     // 添加删除功能函数
-    private func deleteDownload(_ item: DownloadItem) {
+    private func deleteFile(_ item: DownloadItem) {
         // 删除本地文件
         if FileManager.default.fileExists(atPath: item.destPath) {
             do {
@@ -249,7 +280,17 @@ struct ContentView: View {
                                  status: .notStarted,
                                  coverUrl: inputCoverURL,
                                  taskName: inputTaskName)
-        downloadItems.append(newItem)
+        modelContext.insert(newItem)
+    }
+    private func deleteDownload(_ item: DownloadItem) {
+        if FileManager.default.fileExists(atPath: item.destPath) {
+            do {
+                try FileManager.default.removeItem(atPath: item.destPath)
+            } catch {
+                print("删除文件失败: \(error)")
+            }
+        }
+        modelContext.delete(item)
     }
 }
 
